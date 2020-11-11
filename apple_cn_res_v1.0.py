@@ -114,9 +114,7 @@ def extract_info(df, store_mapping, model_mapping, store_to_monitor, model_exact
                     modelName = model_mapping[e]
                     col = modelName[-3:].strip()
                     capacity = modelName[-9:-4].strip()
-                    local_timestamp = time.asctime(time.localtime(time.time()))
-                    print('时间: {}:'.format(local_timestamp))
-                    print(store_city, store_name, modelName)
+                    print(time_stamp, store_city, store_name, modelName)
                     final_link = ''.join([link_1,m,link_2,col,link_3,capacity,link_4,s,link_5,s,link_6,e,link_7])
                     print(final_link)
                     webbrowser.open(final_link)
