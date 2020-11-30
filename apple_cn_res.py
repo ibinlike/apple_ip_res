@@ -92,7 +92,7 @@ def process_apple_data(urls):
         return new_df
 
 # Based on the stock avaiability, return the store name and model name:
-def extract_info(df, store_mapping, model_mapping, store_to_monitor, model_exact_name, m):
+def extract_info(df, store_mapping, model_mapping, store_to_monitor, model_exact_name, m, serverchan = None):
     link_1 = 'https://reserve-prime.apple.com/CN/zh_CN/reserve/'
     link_2 = '?color='
     link_3 = '&capacity='
@@ -102,6 +102,7 @@ def extract_info(df, store_mapping, model_mapping, store_to_monitor, model_exact
     link_7 = '&channel=&sourceID=&iUID=&iuToken=&iUP=N&appleCare=&rv=&path=&plan=unlocked'
     store_inter_sect = list(set(store_to_monitor) & set(df.stores.tolist()))
     if store_inter_sect:
+        results =[]
         for s in store_inter_sect:
             store_c_n = store_mapping[s]
             store_city, store_name = store_c_n[0], store_c_n[1] 
@@ -114,21 +115,31 @@ def extract_info(df, store_mapping, model_mapping, store_to_monitor, model_exact
                     modelName = model_mapping[e]
                     col = modelName[-3:].strip()
                     capacity = modelName[-9:-4].strip()
-                    print(time_stamp, store_city, store_name, modelName)
-                    final_link = ''.join([link_1,m,link_2,col,link_3,capacity,link_4,s,link_5,s,link_6,e,link_7])
-                    print(final_link)
-                    webbrowser.open(final_link)
+                    msg_main = str(store_city) + ' ' + str(store_name) + str(modelName)
+                    if msg_main in results:
+                        pass
+                    else:
+                        results.append(msg_main)
+                        print(msg_main)
+                        final_link = ''.join([link_1,m,link_2,col,link_3,capacity,link_4,s,link_5,s,link_6,e,link_7])
+                        print(final_link)
+                        if serverchan:
+                            requests.get('http://sc.ftqq.com/{0}.send?text={1}'.format(str(serverchan), msg_main))
+                        else:
+                            webbrowser.open(final_link)
+                        
             else:
                 pass
     else:
         pass
       
 # Monitor the stock
-def monitor_res(urls, store_mapping, model_mapping, store_to_monitor, model_exact_name, m, model_name):
+def monitor_res(urls, store_mapping, model_mapping, store_to_monitor, model_exact_name, m, model_name, serverchan):
     try:
         df = process_apple_data(urls)
         if len(df) > 0:
-            extract_info(df, store_mapping, model_mapping, store_to_monitor, model_exact_name, m)
+            print('有货')
+            extract_info(df, store_mapping, model_mapping, store_to_monitor, model_exact_name, m, serverchan)
         else:
             print(time_stamp, model_name, '监测中...')
     except:
@@ -194,13 +205,23 @@ def input_model_name():
             continue
     return model_name
 
- 
+# Server酱
 
-def daemon(local_handler, t, store_mapping, model_mapping, ava_link,store_to_monitor, model_exact_name, m, model_name): 
+def wechat_push():
+    true_or_false = input('是否需要微信推送，Y 或者 N:')
+    if true_or_false == 'Y':
+        serverchan = input('请输入你的server酱SCKEY：')
+        return serverchan
+    elif true_or_false == 'N':
+        return None
+    else:
+        print('请输入正确的字符！')
+
+def daemon(local_handler, t, store_mapping, model_mapping, ava_link,store_to_monitor, model_exact_name, m, model_name, serverchan): 
   try:
-      monitor_res(ava_link, store_mapping, model_mapping, store_to_monitor, model_exact_name, m, model_name)
+      monitor_res(ava_link, store_mapping, model_mapping, store_to_monitor, model_exact_name, m, model_name, serverchan)
       time.sleep(5)
-      local_handler.enterabs(t + 5, 1, daemon, (local_handler, t+5, store_mapping, model_mapping, ava_link, store_to_monitor, model_exact_name, m, model_name))
+      local_handler.enterabs(t + 5, 1, daemon, (local_handler, t+5, store_mapping, model_mapping, ava_link, store_to_monitor, model_exact_name, m, model_name,serverchan))
   except:
 
       print('出错了， 休息10分钟继续！')
@@ -219,9 +240,10 @@ def main():
     model_exact_name = vali_input(model_mapping)
     print('监视的零售店：', [store_mapping[x] for x in store_to_monitor])
     print('监视的型号：', [model_mapping[x] for x in model_exact_name])
+    serverchan = wechat_push()
     handler = sched.scheduler(time.time, time.sleep)
     t = time.time()
-    handler.enter(0, 1, daemon, (handler, t, store_mapping, model_mapping, ava_link, store_to_monitor, model_exact_name,m, model_name))
+    handler.enter(0, 1, daemon, (handler, t, store_mapping, model_mapping, ava_link, store_to_monitor, model_exact_name,m, model_name, serverchan))
     handler.run()
 
 
