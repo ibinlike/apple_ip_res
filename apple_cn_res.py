@@ -138,7 +138,6 @@ def monitor_res(urls, store_mapping, model_mapping, store_to_monitor, model_exac
     try:
         df = process_apple_data(urls)
         if len(df) > 0:
-            print('有货')
             extract_info(df, store_mapping, model_mapping, store_to_monitor, model_exact_name, m, serverchan)
         else:
             print(time_stamp, model_name, '监测中...')
